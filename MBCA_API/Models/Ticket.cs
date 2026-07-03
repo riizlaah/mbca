@@ -1,27 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace MBCA_API.Models;
-
-public partial class Ticket
+﻿namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    public class Ticket
+    {
+        public int id { get; set; }
+        public int eventId { get; set; }
+        public int userId { get; set; }
+        public int? promoId { get; set; }
+        public DateTime transactionDate { get; set; }
+        public int qty { get; set; }
+        public decimal totalPrice { get; set; }
 
-    public DateTime TransactionDate { get; set; }
-
-    public int EventId { get; set; }
-
-    public int UserId { get; set; }
-
-    public int Qty { get; set; }
-
-    public int? PromoId { get; set; }
-
-    public decimal TotalPrice { get; set; }
-
-    public virtual Event Event { get; set; } = null!;
-
-    public virtual Promo? Promo { get; set; }
-
-    public virtual User User { get; set; } = null!;
+        public User user { get; set; } = null!;
+        public Event Event { get; set; } = null!;
+        public Promo? promo { get; set; }
+    }
 }

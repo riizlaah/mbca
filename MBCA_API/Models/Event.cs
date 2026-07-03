@@ -1,35 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MBCA_API.Models;
-
-public partial class Event
+namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    [Table("Event")]
+    public class Event
+    {
+        public int id { get; set; }
+        public string title { get; set; } = null!;
+        public string description { get; set; } = null!;
+        public DateOnly date { get; set; }
+        public TimeOnly startTime { get; set; }
+        public TimeOnly endTime { get; set; }
+        public string location { get; set; } = null!;
+        public string initiator { get; set; } = null!;
+        public decimal price { get; set; }
+        public int eventCategoryId { get; set; }
 
-    public string Title { get; set; } = null!;
-
-    public string Description { get; set; } = null!;
-
-    public DateOnly Date { get; set; }
-
-    public TimeOnly StartTime { get; set; }
-
-    public TimeOnly EndTime { get; set; }
-
-    public string Location { get; set; } = null!;
-
-    public string Initiator { get; set; } = null!;
-
-    public decimal Price { get; set; }
-
-    public int EventCategoryId { get; set; }
-
-    public virtual ICollection<EventBanner> EventBanners { get; set; } = new List<EventBanner>();
-
-    public virtual EventCategory EventCategory { get; set; } = null!;
-
-    public virtual ICollection<EventExhibit> EventExhibits { get; set; } = new List<EventExhibit>();
-
-    public virtual ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
+        public EventCategory eventCategory { get; set; } = null!;
+        public ICollection<EventBanner> eventBanners { get; set; } = new List<EventBanner>();
+        public ICollection<EventExhibit> eventExhibits { get; set; } = new List<EventExhibit>();
+        public ICollection<Ticket> tickets { get; set; } = new List<Ticket>();
+    }
 }

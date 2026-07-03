@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MBCA_API.Models;
-
-public partial class EventCategory
+namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    [Table("EventCategory")]
+    public class EventCategory
+    {
+        public int id { get; set; }
+        public string name { get; set; } = null!;
 
-    public string Name { get; set; } = null!;
-
-    public virtual ICollection<Event> Events { get; set; } = new List<Event>();
+        public ICollection<Event> events { get; set; } = new List<Event>();
+    }
 }

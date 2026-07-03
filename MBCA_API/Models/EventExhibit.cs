@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MBCA_API.Models;
-
-public partial class EventExhibit
+namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    [Table("EventExhibit")]
+    public class EventExhibit
+    {
+        public int id { get; set; }
+        public int eventId { get; set; }
+        public int exhibitId { get; set; }
 
-    public int EventId { get; set; }
-
-    public int ExhibitId { get; set; }
-
-    public virtual Event Event { get; set; } = null!;
-
-    public virtual Exhibit Exhibit { get; set; } = null!;
+        public Exhibit exhibit { get; set; } = null!;
+        public Event Event { get; set; } = null!;
+    }
 }

@@ -1,19 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MBCA_API.Models;
-
-public partial class Otp
+namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    [Table("OTP")]
+    public class OTP
+    {
+        public int id { get; set; }
+        public int userId { get; set; }
+        public string code { get; set; } = null!;
+        public DateTime validUntil { get; set; }
 
-    public int UserId { get; set; }
-
-    public string Code { get; set; } = null!;
-
-    public long ValidUntil { get; set; }
-
-    public DateTime validUntildt => DateTime.FromBinary(ValidUntil);
-
-    public virtual User User { get; set; } = null!;
+        public User user { get; set; } = null!;
+    }
 }

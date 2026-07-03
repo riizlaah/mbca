@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MBCA_API.Models;
-
-public partial class PhonePrefix
+namespace MBCA_API.Models
 {
-    public int Id { get; set; }
-
-    public string Prefix { get; set; } = null!;
+    [Table("PhonePrefix")]
+    public class PhonePrefix
+    {
+        public int id { get; set; }
+        public string prefix { get; set; } = null!;
+    }
 }

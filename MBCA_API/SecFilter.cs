@@ -5,12 +5,11 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace MBCA_API
 {
-    public class SecFilter : IOperationFilter
+    public class SecFilter: IOperationFilter
     {
         public void Apply(OpenApiOperation ops, OperationFilterContext ctx)
         {
-            var authorized = ctx.MethodInfo.GetCustomAttributes(true).Union(ctx.MethodInfo.GetCustomAttributes(true))
-                .OfType<AuthorizeAttribute>().Any();
+            var authorized = ctx.MethodInfo.GetCustomAttributes(true).OfType<AuthorizeAttribute>().Any();
             if(authorized)
             {
                 ops.Security = new List<OpenApiSecurityRequirement>

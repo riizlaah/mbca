@@ -1,15 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MBCA_API.Models;
-
-public partial class EventBanner
+namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    [Table("EventBanner")]
+    public class EventBanner
+    {
+        public int id { get; set; }
+        public int eventId { get; set; }
+        public string banner { get; set; } = null!;
 
-    public int EventId { get; set; }
-
-    public string Banner { get; set; } = null!;
-
-    public virtual Event Event { get; set; } = null!;
+        public Event Event { get; set; } = null!;
+    }
 }

@@ -1,25 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MBCA_API.Models;
-
-public partial class Exhibit
+namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    [Table("Exhibit")]
+    public class Exhibit
+    {
+        public int id { get; set; }
+        public string name { get; set; } = null!;
+        public string artist { get; set; } = null!;
+        public string timePeriod { get; set; } = null!;
+        public string image { get; set; } = null!;
+        public int exhibitCategoryId { get; set; }
 
-    public string Name { get; set; } = null!;
-
-    public string Artist { get; set; } = null!;
-
-    public string TimePeriod { get; set; } = null!;
-
-    public string Image { get; set; } = null!;
-
-    public int ExhibitCategoryId { get; set; }
-
-    public virtual ICollection<EventExhibit> EventExhibits { get; set; } = new List<EventExhibit>();
-
-    public virtual ExhibitCategory ExhibitCategory { get; set; } = null!;
-
-    public virtual ICollection<ExhibitTag> ExhibitTags { get; set; } = new List<ExhibitTag>();
+        public ExhibitCategory exhibitCategory { get; set; } = null!;
+        public ICollection<ExhibitTag> exhibitTags { get; set; } = new List<ExhibitTag>();
+        public ICollection<EventExhibit> eventExhibits { get; set; } = new List<EventExhibit>();
+    }
 }

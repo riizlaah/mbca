@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MBCA_API.Models;
-
-public partial class Role
+namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    [Table("Role")]
+    public class Role
+    {
+        public int id { get; set; }
+        public string name { get; set; } = null!;
 
-    public string Name { get; set; } = null!;
-
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
+        public ICollection<User> users { get; set; } = null!;
+    }
 }

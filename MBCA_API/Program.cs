@@ -1,17 +1,18 @@
 using MBCA_API;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.AspNetCore.Mvc;
 using MBCA_API.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddDbContext<MbcaContext>();
+builder.Services.AddDbContext<MBCAContext>();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -40,8 +41,8 @@ builder.Services.AddAuthentication().AddJwtBearer(opt =>
         ValidateIssuer = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidAudience = builder.Configuration["Jwt:Audience"],
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
 });
@@ -56,6 +57,16 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
 });
 
 var app = builder.Build();
+
+
+var uploadDir = Path.Combine(builder.Environment.ContentRootPath, "wwwroot/uploads");
+if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/uploads",
+    FileProvider = new PhysicalFileProvider(uploadDir)
+});
 
 // Configure the HTTP request pipeline.
 app.UseSwagger();

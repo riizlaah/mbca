@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace MBCA_API.Models;
-
-public partial class Promo
+﻿namespace MBCA_API.Models
 {
-    public int Id { get; set; }
+    public class Promo
+    {
+        public int id { get; set; }
+        public string code { get; set; } = null!;
+        public decimal discountPercentage { get; set; }
+        public DateOnly startDate { get; set; }
+        public DateOnly endDate { get; set; }
 
-    public string Code { get; set; } = null!;
-
-    public decimal DiscountPercentage { get; set; }
-
-    public DateOnly StartDate { get; set; }
-
-    public DateOnly EndDate { get; set; }
-
-    public virtual ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
+        public ICollection<Ticket> tickets { get; set; } = new List<Ticket>();
+    }
 }

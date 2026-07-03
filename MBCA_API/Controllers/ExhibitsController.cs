@@ -11,88 +11,112 @@ namespace MBCA_API.Controllers
     [ApiController]
     public class ExhibitsController : ExtControllerBase
     {
-        private readonly MbcaContext dbc;
+        private readonly MBCAContext dbc;
+        private string uploadDir;
 
-        public ExhibitsController(MbcaContext dbc)
+        public ExhibitsController(MBCAContext dbc, IWebHostEnvironment env)
         {
             this.dbc = dbc;
+            uploadDir = Path.Combine(env.ContentRootPath, "wwwroot/uploads");
         }
 
         [HttpGet]
         [Authorize(Roles = "Employee")]
         public ActionResult GetAll(int page = 1, int size = 0, string search = "")
         {
-            var query = dbc.Exhibits.Include(e => e.ExhibitTags).Include(e => e.ExhibitCategory).AsQueryable();
-            if (search.Trim() != "")
+            var query = dbc.Exhibits.Include(e => e.exhibitTags).Include(e => e.exhibitCategory).AsQueryable();
+            if(search != "")
             {
                 var str = $"%{search}%";
-                query.Where(e => EF.Functions.Like(e.Name, str) || EF.Functions.Like(e.Artist, str) || EF.Functions.Like(e.TimePeriod, str) || EF.Functions.Like(e.ExhibitCategory.Name, str));
+                query = query.Where(e => EF.Functions.Like(e.artist, str) || 
+                EF.Functions.Like(e.name, str) ||
+                EF.Functions.Like(e.timePeriod, str));
             }
-            return PaginateQuery(query, page, size, e => new
+            return paginateQuery(query, page, size, e => new
             {
-                id = e.Id,
-                name = e.Name,
-                artist = e.Artist,
-                timePeriod = e.TimePeriod,
+                e.id,
+                e.name,
+                e.artist,
                 category = new
                 {
-                    id = e.ExhibitCategoryId,
-                    name = e.ExhibitCategory.Name
+                    id = e.exhibitCategoryId,
+                    e.exhibitCategory.name,
                 },
-                tags = e.ExhibitTags.ToList().Select(e => new
-                {
-                    id = e.Id,
-                    name = e.Tag
-                })
-            }, "Exhibits data fetched successfully");
+                e.timePeriod,
+                tags = e.exhibitTags.Select(et => new { et.id, et.tag })
+            });
         }
 
         [HttpGet("{id}")]
         [Authorize(Roles = "Employee")]
-        public ActionResult GetAll(int id)
+        public ActionResult Get(int id)
         {
-            var e = dbc.Exhibits.Include(e => e.ExhibitTags).Include(e => e.ExhibitCategory).FirstOrDefault(e => e.Id == id);
-            if (e == null) return err("Exhibit not found");
+            var e = dbc.Exhibits.Include(e => e.exhibitTags).Include(e => e.exhibitCategory).FirstOrDefault(e => e.id == id);
+            if (e == null) return err("Exhibit not found", 404);
             return json(new
             {
-                id = e.Id,
-                name = e.Name,
-                artist = e.Artist,
-                timePeriod = e.TimePeriod,
+                e.id,
+                e.name,
+                e.artist,
                 category = new
                 {
-                    id = e.ExhibitCategoryId,
-                    name = e.ExhibitCategory.Name
+                    id = e.exhibitCategoryId,
+                    e.exhibitCategory.name,
                 },
-                tags = e.ExhibitTags.ToList().Select(e => new
-                {
-                    id = e.Id,
-                    name = e.Tag
-                })
+                e.timePeriod,
+                tags = e.exhibitTags.Select(et => new { et.id, et.tag }),
+                e.image,
             }, "Exhibit data fetched successfully");
         }
 
         [HttpPost]
         [Authorize(Roles = "Employee")]
-        public ActionResult Create(ExhibitDTO input)
+        async public Task<ActionResult> Create([FromForm] ExhibitDTO input)
         {
-            if (input.tags.Length < 1) return err("Exhibit must have at least one tag");
-            if (dbc.ExhibitCategories.Any(e => e.Id == input.categoryId)) return err("Category not found", 404);
-            dbc.Exhibits.Add(input.ToEntity());
-            dbc.SaveChanges();
+            if (input.tags.Count < 1) return err("Tag required");
+            if (input.image == null || !isImageValid(input.image)) return err("Image not valid");
+            if (input.categoryId < 1 || !await dbc.ExhibitCategories.AnyAsync(ec => ec.id == input.categoryId)) return err("Category not found", 404);
+            var imagePath = await uploadFile(input.image, uploadDir);
+            await dbc.AddAsync(input.toEntity(imagePath));
+            await dbc.SaveChangesAsync();
             return msg("Exhibit created successfully");
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Employee")]
-        public ActionResult Update(int id, ExhibitDTO input)
+        async public Task<ActionResult> Update(int id, [FromForm] ExhibitDTO input)
         {
-            var rec = dbc.Exhibits.Include(e => e.ExhibitTags).FirstOrDefault(e => e.Id == id);
+            if (input.tags.Count < 1) return err("Tag required");
+            if (input.image != null && !!isImageValid(input.image)) return err("Image not valid");
+            var rec = await dbc.Exhibits.Include(e => e.exhibitTags).FirstOrDefaultAsync(e => e.id == id);
             if (rec == null) return err("Exhibit not found");
-            if (input.tags.Length < 1) return err("Exhibit must have at least one tag");
-            if (dbc.ExhibitCategories.Any(e => e.Id == input.categoryId)) return err("Category not found", 404);
-            input.UpdateEntity(rec);
-            dbc.SaveChanges();
+            if (input.categoryId < 1 || !await dbc.ExhibitCategories.AnyAsync(ec => ec.id == input.categoryId)) return err("Category not found", 404);
+            rec.name = input.name;
+            rec.artist = input.artist;
+            rec.timePeriod = input.timePeriod;
+            if (input.image != null) rec.image = await uploadFile(input.image, uploadDir, rec.image);
+            rec.exhibitCategoryId = input.categoryId;
+
+            var i = 0;
+            foreach (var tag in input.tags)
+            {
+                if (i > rec.exhibitTags.Count - 1)
+                {
+                    rec.exhibitTags.Add(new ExhibitTag { tag = tag });
+                }
+                else if (rec.exhibitTags.ElementAt(i).tag != tag)
+                {
+                    rec.exhibitTags.ElementAt(i).tag = tag;
+                }
+                i += 1;
+            }
+            if(rec.exhibitTags.Count > input.tags.Count)
+            {
+                var toRemoved = rec.exhibitTags.Skip(i);
+                foreach (var item in toRemoved) rec.exhibitTags.Remove(item);
+            }
+
+            await dbc.SaveChangesAsync();
             return msg("Exhibit updated successfully");
         }
 
@@ -100,72 +124,38 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         public ActionResult Delete(int id)
         {
-            var rec = dbc.Exhibits.FirstOrDefault(e => e.Id == id);
+            var rec = dbc.Exhibits.FirstOrDefault(e => e.id == id);
             if (rec == null) return err("Exhibit not found");
             dbc.Exhibits.Remove(rec);
             dbc.SaveChanges();
-            return msg("Exhibit deleted successfully");
+            return msg("Exhibit created successfully");
         }
-
-
-
 
 
         // Categories
         [HttpGet("categories")]
         [Authorize(Roles = "Employee")]
-        public ActionResult GetAllCategories()
+        public ActionResult GetCategories()
         {
-            var data = dbc.ExhibitCategories.ToList().Select(e => new
-            {
-                id = e.Id,
-                name = e.Name,
-            });
-            return json(data, "Categories fetched successfully");
+            var data = dbc.ExhibitCategories.Select(e => new { e.id, e.name}).ToList();
+            return json(data, "Exhibit categories fetched successfully");
         }
     }
 
     public class ExhibitDTO
     {
-        [Required] public string name { get; set; } = null!;
-        [Required] public string artist { get; set; } = null!;
+        [Required] public string name { get; set; } = "";
+        [Required] public string artist { get; set; } = "";
+        [Required] public string timePeriod { get; set; } = "";
         [Required] public int categoryId { get; set; }
-        [Required] public string timePeriod { get; set; } = null!;
-        [Required] public string[] tags { get; set; } = null!;
+        [Required] public IFormFile? image { get; set; }
+        [Required] public List<string> tags { get; set; } = new List<string>();
 
-        public Exhibit ToEntity()
+        public Exhibit toEntity(string imagePath)
         {
-            var e = new Exhibit
-            {
-                Name = name,
-                Artist = artist,
-                TimePeriod = timePeriod,
-                ExhibitCategoryId = categoryId,
-                ExhibitTags = tags.Select(t => new ExhibitTag
-                {
-                    Tag = t
-                }).ToList()
-            };
-            return e;
-        }
-
-        public Exhibit UpdateEntity(Exhibit e)
-        {
-            e.Name = name;
-            e.Artist = artist;
-            e.TimePeriod = timePeriod;
-            e.ExhibitCategoryId = categoryId;
-            var toRemoved = new List<ExhibitTag>();
-            foreach(var t in e.ExhibitTags)
-            {
-                if(!tags.Contains(t.Tag)) toRemoved.Add(t);
-            }
-            foreach(var t in tags)
-            {
-                if(!e.ExhibitTags.Any(e => e.Tag == t)) e.ExhibitTags.Add(new ExhibitTag { Tag = t });
-            }
-            e.ExhibitTags = e.ExhibitTags.Where(t => !toRemoved.Any(r => r.Tag == t.Tag)).ToList();
-            return e;
+            return new Exhibit { 
+                name = name, 
+                artist = artist, timePeriod = timePeriod, image = imagePath, exhibitTags = tags.Select(name => new ExhibitTag { tag = name }).ToList() };
         }
     }
 }
