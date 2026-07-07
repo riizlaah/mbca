@@ -37,7 +37,7 @@ namespace MBCA_API.Controllers
                 user.username,
                 user.email,
                 role = user.role.name,
-                token = generateToken(user.id, user.role.name),
+                token = generateToken(user.id, user.role.name, user.isActivated),
                 user.isActivated
             }, "Login successful");
         }
@@ -90,13 +90,14 @@ namespace MBCA_API.Controllers
         
 
 
-        protected string generateToken(int id, string role)
+        protected string generateToken(int id, string role, bool verified)
         {
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, id.ToString()),
                 new Claim(ClaimTypes.Role, role),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("verified", verified.ToString())
             };
             var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(conf["Jwt:Key"])), SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken(conf["Jwt:Issuer"], conf["Jwt:Audience"], claims, expires: DateTime.Now.AddHours(8), signingCredentials: creds);

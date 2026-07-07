@@ -19,7 +19,7 @@ CREATE TABLE [User](
 	[Email]		        VARCHAR(200)	    NOT NULL,
 	[PhoneNumber]	    VARCHAR(200)	    NOT NULL,
 	[RoleID]		    INT                 NOT NULL,
-	[IsActivated]	    TINYINT	            NOT NULL,
+	[IsActivated]	    BIT	            NOT NULL,
 
     CONSTRAINT FK_User_Role FOREIGN KEY ([RoleID]) REFERENCES [Role]([ID])
 );
@@ -94,7 +94,7 @@ CREATE TABLE [Promo](
 );
 CREATE TABLE [Ticket](
 	[ID]			    INT				    PRIMARY KEY IDENTITY(1, 1),
-	[TransactionDate]	DATETIME	        NOT NULL,
+	[TransactionDate]	DATETIME	        NOT NULL DEFAULT GETDATE(),
 	[EventID]		    INT	                NOT NULL,
 	[UserID]		    INT	                NOT NULL,
 	[Qty]			    INT	                NOT NULL,

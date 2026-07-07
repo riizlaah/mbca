@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MBCA_API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("mbca-api/v1/[controller]")]
     [ApiController]
     public class PhonePrefixesController : ExtControllerBase
     {
@@ -20,6 +20,7 @@ namespace MBCA_API.Controllers
         [Authorize]
         public ActionResult GetAll()
         {
+            if (isNotVerified()) return notVerified();
             var data = dbc.PhonePrefixes.Select(e => e.prefix).ToList();
             return json(data, "Phone prefixes fetched");
         }

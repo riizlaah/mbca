@@ -24,7 +24,8 @@ namespace MBCA_API.Controllers
         [Authorize]
         public ActionResult GetAll(int page = 1, int size = 0, string search = "")
         {
-            var query = dbc.Events.Include(e => e.eventCategory).AsQueryable();
+            if (isNotVerified()) return notVerified();
+            var query = dbc.Events.Include(e => e.eventBanners).Include(e => e.eventCategory).AsQueryable();
             if (search != "")
             {
                 var str = $"%{search}%";
@@ -50,6 +51,11 @@ namespace MBCA_API.Controllers
                     id = e.eventCategoryId,
                     e.eventCategory.name,
                 },
+                banners = e.eventBanners.Select(eb => new
+                {
+                    eb.id,
+                    eb.banner
+                }).ToList()
             });
         }
 
@@ -57,6 +63,7 @@ namespace MBCA_API.Controllers
         [Authorize]
         public ActionResult GetExhibit(int id)
         {
+            if (isNotVerified()) return notVerified();
             var data = dbc.EventExhibits.Include(e => e.exhibit.exhibitTags).Include(e => e.exhibit.exhibitCategory).Where(e => e.eventId == id).ToList();
             return json(data.Select(e => new
             {
@@ -77,6 +84,7 @@ namespace MBCA_API.Controllers
         [Authorize]
         public ActionResult Get(int id)
         {
+            if (isNotVerified()) return notVerified();
             var e = dbc.Events.Include(e => e.eventCategory).Include(e => e.eventBanners).Include(e => e.eventExhibits).ThenInclude(e => e.exhibit.exhibitCategory).FirstOrDefault(e => e.id == id);
             if (e == null) return err("Event not found", 404);
             return json(new
@@ -120,6 +128,7 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         async public Task<ActionResult> Create([FromForm] EventDTO input)
         {
+            if (isNotVerified()) return notVerified();
             if (input.price <= 0m) return err("Price must be greater than zero");
             if (input.banners.Count < 1) return err("Banner required");
             if (input.exhibits.Count < 1) return err("Exhibit required");
@@ -145,6 +154,7 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         async public Task<ActionResult> Update(int id, EventDTO input)
         {
+            if (isNotVerified()) return notVerified();
             if (input.price <= 0m) return err("Price must be greater than zero");
             if (input.banners.Count > 0 && !input.banners.Any(b => isImageValid(b))) return err("Some banner image doesn't valid");
             if (input.startTime >= input.endTime) return err("Time not valid");
@@ -201,13 +211,14 @@ namespace MBCA_API.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Employee")]
-        public ActionResult Create(int id)
+        public ActionResult Remove(int id)
         {
+            if (isNotVerified()) return notVerified();
             var rec = dbc.Events.FirstOrDefault(e => e.id == id);
             if (rec == null) return err("Event not found");
             dbc.Events.Remove(rec);
             dbc.SaveChanges();
-            return msg("Event created successfully");
+            return msg("Event removed successfully");
         }
 
 
@@ -216,6 +227,7 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         public ActionResult GetCategories()
         {
+            if (isNotVerified()) return notVerified();
             var data = dbc.EventCategories.Select(e => new { e.id, e.name}).ToList();
             return json(data, "Exhibit categories fetched successfully");
         }

@@ -92,5 +92,9 @@ namespace MBCA_API
             for(var i  = 0; i < len; i++) str += chars[rand.Next(chars.Length - 1)];
             return str;
         }
+
+        protected bool isNotVerified() => User.FindFirstValue("verified") != "True";
+
+        protected ObjectResult notVerified() => err("Your account hasn't been activated");
     }
 }

@@ -24,6 +24,7 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         public ActionResult GetAll(int page = 1, int size = 0, string search = "")
         {
+            if (isNotVerified()) return notVerified();
             var query = dbc.Exhibits.Include(e => e.exhibitTags).Include(e => e.exhibitCategory).AsQueryable();
             if(search != "")
             {
@@ -51,6 +52,7 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         public ActionResult Get(int id)
         {
+            if (isNotVerified()) return notVerified();
             var e = dbc.Exhibits.Include(e => e.exhibitTags).Include(e => e.exhibitCategory).FirstOrDefault(e => e.id == id);
             if (e == null) return err("Exhibit not found", 404);
             return json(new
@@ -73,6 +75,7 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         async public Task<ActionResult> Create([FromForm] ExhibitDTO input)
         {
+            if (isNotVerified()) return notVerified();
             if (input.tags.Count < 1) return err("Tag required");
             if (input.image == null || !isImageValid(input.image)) return err("Image not valid");
             if (input.categoryId < 1 || !await dbc.ExhibitCategories.AnyAsync(ec => ec.id == input.categoryId)) return err("Category not found", 404);
@@ -86,6 +89,7 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         async public Task<ActionResult> Update(int id, [FromForm] ExhibitDTO input)
         {
+            if (isNotVerified()) return notVerified();
             if (input.tags.Count < 1) return err("Tag required");
             if (input.image != null && !!isImageValid(input.image)) return err("Image not valid");
             var rec = await dbc.Exhibits.Include(e => e.exhibitTags).FirstOrDefaultAsync(e => e.id == id);
@@ -124,11 +128,12 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         public ActionResult Delete(int id)
         {
+            if (isNotVerified()) return notVerified();
             var rec = dbc.Exhibits.FirstOrDefault(e => e.id == id);
             if (rec == null) return err("Exhibit not found");
             dbc.Exhibits.Remove(rec);
             dbc.SaveChanges();
-            return msg("Exhibit created successfully");
+            return msg("Exhibit removed successfully");
         }
 
 
@@ -137,6 +142,7 @@ namespace MBCA_API.Controllers
         [Authorize(Roles = "Employee")]
         public ActionResult GetCategories()
         {
+            if (isNotVerified()) return notVerified();
             var data = dbc.ExhibitCategories.Select(e => new { e.id, e.name}).ToList();
             return json(data, "Exhibit categories fetched successfully");
         }
