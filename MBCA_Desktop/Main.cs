@@ -8,6 +8,7 @@ namespace MBCA_Desktop
         public Main()
         {
             InitializeComponent();
+            Helper.LockWindow(this);
             tryLoginWithToken();
         }
 
@@ -37,7 +38,6 @@ namespace MBCA_Desktop
             Properties.Settings.Default.token = Helper.token;
             Properties.Settings.Default.Save();
             var (success2, res2, msg2) = await Helper.jsonReq<ProfileRes, object>("users/me");
-            Debug.WriteLine(Helper.token);
             if (!success2)
             {
                 Properties.Settings.Default.token = "";
@@ -65,8 +65,12 @@ namespace MBCA_Desktop
         {
             Helper.token = Properties.Settings.Default.token;
             var (success, res, msg) = await Helper.jsonReq<ProfileRes, object>("users/me");
-            Debug.WriteLine(Helper.token);
-            if (!success) return;
+            if (!success)
+            {
+                Properties.Settings.Default.token = "";
+                Properties.Settings.Default.Save();
+                return;
+            }
             if (res.data == null) return;
             Helper.profile = res.data;
             var window = new HomeForm();

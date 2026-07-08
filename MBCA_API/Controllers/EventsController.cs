@@ -129,6 +129,7 @@ namespace MBCA_API.Controllers
         async public Task<ActionResult> Create([FromForm] EventDTO input)
         {
             if (isNotVerified()) return notVerified();
+            if (input.date < DateOnly.FromDateTime(DateTime.Now)) return err("Date must be greater than today");
             if (input.price <= 0m) return err("Price must be greater than zero");
             if (input.banners.Count < 1) return err("Banner required");
             if (input.exhibits.Count < 1) return err("Exhibit required");
@@ -156,6 +157,7 @@ namespace MBCA_API.Controllers
         {
             if (isNotVerified()) return notVerified();
             if (input.price <= 0m) return err("Price must be greater than zero");
+            if (input.date < DateOnly.FromDateTime(DateTime.Now)) return err("Date must be greater than today");
             if (input.banners.Count > 0 && !input.banners.Any(b => isImageValid(b))) return err("Some banner image doesn't valid");
             if (input.startTime >= input.endTime) return err("Time not valid");
             var rec = dbc.Events.Include(e => e.eventCategory).Include(e => e.eventBanners).Include(e => e.eventExhibits).ThenInclude(e => e.exhibit.exhibitCategory).FirstOrDefault(e => e.id == id);
@@ -214,8 +216,12 @@ namespace MBCA_API.Controllers
         public ActionResult Remove(int id)
         {
             if (isNotVerified()) return notVerified();
-            var rec = dbc.Events.FirstOrDefault(e => e.id == id);
+            var rec = dbc.Events.Include(e => e.eventBanners).FirstOrDefault(e => e.id == id);
             if (rec == null) return err("Event not found");
+            foreach(var banner in rec.eventBanners)
+            {
+                System.IO.File.Delete(Path.Combine(uploadDir, banner.banner));
+            }
             dbc.Events.Remove(rec);
             dbc.SaveChanges();
             return msg("Event removed successfully");
@@ -244,7 +250,7 @@ namespace MBCA_API.Controllers
         [Required] public string location { get; set; } = "";
         [Required] public string initiator { get; set; } = "";
         [Required] public decimal price { get; set; }
-        [Required] public IFormFileCollection banners { get; set; } = new FormFileCollection();
+        public IFormFileCollection banners { get; set; } = new FormFileCollection();
         [Required] public List<int> exhibits { get; set; } = new List<int>();
 
 

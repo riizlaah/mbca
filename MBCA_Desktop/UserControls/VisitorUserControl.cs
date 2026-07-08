@@ -39,6 +39,10 @@ namespace MBCA_Desktop.UserControls
             {
                 otpCode.Text = res.data.code ?? "------";
                 validUntil.Text = "Valid until : " + (res.data.validUntil?.ToString("yyyy-MM-dd HH:mm:ss") ?? "---");
+                if(res.data.validUntil < DateTime.Now)
+                {
+                    validUntil.ForeColor = Color.Red;
+                }
             }
         }
 

@@ -16,11 +16,25 @@ namespace MBCA_Desktop.UserControls
         public AdminUserControl()
         {
             InitializeComponent();
+            username.Text = "@" + (Helper.profile?.username ?? "Visitor");
+            splitContainer1.Panel2.Controls.Add(new CRUDEvents());
         }
 
         private void onLogout(object sender, EventArgs e)
         {
             OnLogout?.Invoke(this, null);
+        }
+
+        private void onEvents(object sender, EventArgs e)
+        {
+            splitContainer1.Panel2.Controls.Clear();
+            splitContainer1.Panel2.Controls.Add(new CRUDEvents());
+        }
+
+        private void onExhibits(object sender, EventArgs e)
+        {
+            splitContainer1.Panel2.Controls.Clear();
+            splitContainer1.Panel2.Controls.Add(new CRUDExhibits());
         }
     }
 }

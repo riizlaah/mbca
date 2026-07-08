@@ -44,6 +44,7 @@ namespace MBCA_API.Controllers
                     e.exhibitCategory.name,
                 },
                 e.timePeriod,
+                e.image,
                 tags = e.exhibitTags.Select(et => new { et.id, et.tag })
             });
         }
@@ -79,7 +80,7 @@ namespace MBCA_API.Controllers
             if (input.tags.Count < 1) return err("Tag required");
             if (input.image == null || !isImageValid(input.image)) return err("Image not valid");
             if (input.categoryId < 1 || !await dbc.ExhibitCategories.AnyAsync(ec => ec.id == input.categoryId)) return err("Category not found", 404);
-            var imagePath = await uploadFile(input.image, uploadDir);
+            var imagePath = await uploadFile(input.image, uploadDir);  
             await dbc.AddAsync(input.toEntity(imagePath));
             await dbc.SaveChangesAsync();
             return msg("Exhibit created successfully");
@@ -129,8 +130,10 @@ namespace MBCA_API.Controllers
         public ActionResult Delete(int id)
         {
             if (isNotVerified()) return notVerified();
-            var rec = dbc.Exhibits.FirstOrDefault(e => e.id == id);
+            var rec = dbc.Exhibits.Include(e => e.exhibitTags).FirstOrDefault(e => e.id == id);
             if (rec == null) return err("Exhibit not found");
+            System.IO.File.Delete(Path.Combine(uploadDir, rec.image));
+            dbc.ExhibitTags.RemoveRange(rec.exhibitTags);
             dbc.Exhibits.Remove(rec);
             dbc.SaveChanges();
             return msg("Exhibit removed successfully");
@@ -154,13 +157,13 @@ namespace MBCA_API.Controllers
         [Required] public string artist { get; set; } = "";
         [Required] public string timePeriod { get; set; } = "";
         [Required] public int categoryId { get; set; }
-        [Required] public IFormFile? image { get; set; }
+        public IFormFile? image { get; set; }
         [Required] public List<string> tags { get; set; } = new List<string>();
 
         public Exhibit toEntity(string imagePath)
         {
             return new Exhibit { 
-                name = name, 
+                name = name, exhibitCategoryId = categoryId,
                 artist = artist, timePeriod = timePeriod, image = imagePath, exhibitTags = tags.Select(name => new ExhibitTag { tag = name }).ToList() };
         }
     }

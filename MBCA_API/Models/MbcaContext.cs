@@ -21,21 +21,21 @@ namespace MBCA_API.Models
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
-            builder.Entity<EventBanner>().HasOne(f => f.Event).WithMany(f => f.eventBanners);
-            builder.Entity<Event>().HasOne(f => f.eventCategory).WithMany(f => f.events);
-            builder.Entity<ExhibitTag>().HasOne(f => f.exhibit).WithMany(f => f.exhibitTags);
-            builder.Entity<Exhibit>().HasOne(f => f.exhibitCategory).WithMany(f => f.exhibits);
-            builder.Entity<OTP>().HasOne(f => f.user).WithMany(f => f.otps);
+            builder.Entity<EventBanner>().HasOne(f => f.Event).WithMany(f => f.eventBanners).OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<Event>().HasOne(f => f.eventCategory).WithMany(f => f.events).OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<ExhibitTag>().HasOne(f => f.exhibit).WithMany(f => f.exhibitTags).OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<Exhibit>().HasOne(f => f.exhibitCategory).WithMany(f => f.exhibits).OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<OTP>().HasOne(f => f.user).WithMany(f => f.otps).OnDelete(DeleteBehavior.Cascade);
             builder.Entity<Ticket>(ee =>
             {
-                ee.HasOne(f => f.promo).WithMany(f => f.tickets);
-                ee.HasOne(f => f.Event).WithMany(f => f.tickets);
-                ee.HasOne(f => f.user).WithMany(f => f.tickets);
+                ee.HasOne(f => f.promo).WithMany(f => f.tickets).OnDelete(DeleteBehavior.ClientSetNull);
+                ee.HasOne(f => f.Event).WithMany(f => f.tickets).OnDelete(DeleteBehavior.ClientSetNull);
+                ee.HasOne(f => f.user).WithMany(f => f.tickets).OnDelete(DeleteBehavior.ClientSetNull);
             });
             builder.Entity<EventExhibit>(ee =>
             {
-                ee.HasOne(f => f.Event).WithMany(f => f.eventExhibits);
-                ee.HasOne(f => f.exhibit).WithMany(f => f.eventExhibits);
+                ee.HasOne(f => f.Event).WithMany(f => f.eventExhibits).OnDelete(DeleteBehavior.Cascade);
+                ee.HasOne(f => f.exhibit).WithMany(f => f.eventExhibits).OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

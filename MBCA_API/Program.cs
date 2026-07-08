@@ -55,6 +55,13 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
         return new BadRequestObjectResult(new { message, errors });
     };
 });
+builder.Services.AddCors(opt =>
+{
+    opt.AddDefaultPolicy(p =>
+    {
+        p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 

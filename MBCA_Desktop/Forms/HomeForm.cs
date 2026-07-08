@@ -17,6 +17,7 @@ namespace MBCA_Desktop.Forms
         public HomeForm()
         {
             InitializeComponent();
+            Helper.LockWindow(this);
             if(Helper.profile == null)
             {
                 MessageBox.Show("Session invalid");
