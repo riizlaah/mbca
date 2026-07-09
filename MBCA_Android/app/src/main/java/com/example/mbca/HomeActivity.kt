@@ -31,7 +31,6 @@ class HomeActivity : ComponentActivity() {
         setContent {
             MBCATheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-
                     Column(
                         Modifier
                             .fillMaxSize()
@@ -39,7 +38,6 @@ class HomeActivity : ComponentActivity() {
                     ) {
                         var selectedIdx by remember { mutableIntStateOf(0) }
                         val tabs = listOf("Event", "Tickets")
-                        val ctx = LocalContext.current
 
                         if(selectedIdx == 0) {
                             EventScreen(Modifier.weight(1f))
