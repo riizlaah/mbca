@@ -25,7 +25,7 @@ namespace MBCA_API.Controllers
         public ActionResult GetAll(int page = 1, int size = 0, string search = "")
         {
             if (isNotVerified()) return notVerified();
-            var query = dbc.Events.Include(e => e.eventBanners).Include(e => e.eventCategory).AsQueryable();
+            var query = dbc.Events.Include(e => e.eventBanners).Include(e => e.eventCategory).OrderByDescending(e => e.date).AsQueryable();
             if (search != "")
             {
                 var str = $"%{search}%";
@@ -61,7 +61,7 @@ namespace MBCA_API.Controllers
 
         [HttpGet("{id}/exhibits")]
         [Authorize]
-        public ActionResult GetExhibit(int id)
+        public ActionResult GetExhibits(int id)
         {
             if (isNotVerified()) return notVerified();
             var data = dbc.EventExhibits.Include(e => e.exhibit.exhibitTags).Include(e => e.exhibit.exhibitCategory).Where(e => e.eventId == id).ToList();
@@ -76,6 +76,7 @@ namespace MBCA_API.Controllers
                     e.exhibit.exhibitCategory.name,
                 },
                 e.exhibit.timePeriod,
+                e.exhibit.image,
                 tags = e.exhibit.exhibitTags.Select(et => new { et.id, et.tag })
             }).ToList(), "Event exhibits fetched successfully");
         }
@@ -119,7 +120,9 @@ namespace MBCA_API.Controllers
                         id = ee.exhibit.exhibitCategoryId,
                         ee.exhibit.exhibitCategory.name,
                     },
+                    ee.exhibit.image,
                     ee.exhibit.timePeriod,
+                    tags = ee.exhibit.exhibitTags.Select(et => new { et.id, et.tag })
                 }).ToList()
             }, "Exhibit data fetched successfully");
         }

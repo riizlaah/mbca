@@ -1,5 +1,8 @@
-﻿namespace MBCA_API.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace MBCA_API.Models
 {
+    [Table("Ticket")]
     public class Ticket
     {
         public int id { get; set; }

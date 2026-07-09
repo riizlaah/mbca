@@ -24,7 +24,7 @@ namespace MBCA_API.Controllers
         {
             if (isNotVerified()) return notVerified();
             var userId = getUserId();
-            var query = dbc.Tickets.Where(e => e.userId == userId).Include(e => e.promo).Include(e => e.Event.eventBanners).Include(e => e.Event.eventCategory).OrderBy(e => e.transactionDate).AsQueryable();
+            var query = dbc.Tickets.Where(e => e.userId == userId).Include(e => e.promo).Include(e => e.Event.eventBanners).Include(e => e.Event.eventCategory).OrderByDescending(e => e.transactionDate).AsQueryable();
             return paginateQuery(query, page, size, e => new
             {
                 e.id,
@@ -32,6 +32,7 @@ namespace MBCA_API.Controllers
                 {
                     e.Event.id,
                     e.Event.title,
+                    e.Event.date,
                     e.Event.startTime,
                     e.Event.endTime,
                     e.Event.price,
@@ -51,6 +52,7 @@ namespace MBCA_API.Controllers
                     e.promo.id,
                     e.promo.code,
                     e.promo.discountPercentage,
+                    e.promo.startDate,
                     e.promo.endDate,
                 },
                 e.qty,
@@ -75,6 +77,7 @@ namespace MBCA_API.Controllers
                 {
                     e.Event.id,
                     e.Event.title,
+                    e.Event.date,
                     e.Event.startTime,
                     e.Event.endTime,
                     e.Event.price,
@@ -137,7 +140,7 @@ namespace MBCA_API.Controllers
                 promo = dbc.Promos.FirstOrDefault(p => p.code == input.code);
                 if (promo == null) return err("Promo not found", 404);
                 if (promo.startDate > DateOnly.FromDateTime(DateTime.Now)) return err("Promo hasn't started yet");
-                if (promo.endDate < DateOnly.FromDateTime(DateTime.Now)) return err("Promo was ended");
+                if (promo.endDate < DateOnly.FromDateTime(DateTime.Now)) return err("Promo expired");
                 mult = 1m - (promo.discountPercentage * 0.01m);
             }
             dbc.Tickets.Add(new Ticket

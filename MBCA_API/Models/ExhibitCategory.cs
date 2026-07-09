@@ -2,7 +2,8 @@
 
 namespace MBCA_API.Models
 {
-    [Table("ExhibitCategory")] public class ExhibitCategory
+    [Table("ExhibitCategory")]
+    public class ExhibitCategory
     {
         public int id { get; set; }
         public string name { get; set; } = null!;
