@@ -71,7 +71,7 @@ namespace MBCA_API.Controllers
             var userId = getUserId();
             var now = DateTime.Now;
             if (dbc.Users.Any(u => u.isActivated && u.id == userId)) return err("Account has been activated");
-            var otp = dbc.OTPs.Include(e => e.user.role).FirstOrDefault(e => e.validUntil < now && e.userId == userId && e.code == input.code);
+            var otp = dbc.OTPs.Include(e => e.user.role).FirstOrDefault(e => e.validUntil > now && e.userId == userId && e.code == input.code);
             if (otp == null)
             {
                 return err("OTP Code not valid");

@@ -42,6 +42,9 @@ namespace MBCA_Desktop.UserControls
                 if(res.data.validUntil < DateTime.Now)
                 {
                     validUntil.ForeColor = Color.Red;
+                } else
+                {
+                    validUntil.ForeColor = Color.Black;
                 }
             }
         }

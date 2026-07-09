@@ -17,11 +17,9 @@ namespace MBCA_API.Controllers
         }
 
         [HttpGet]
-        [Authorize]
         public ActionResult GetAll()
         {
-            if (isNotVerified()) return notVerified();
-            var data = dbc.PhonePrefixes.Select(e => e.prefix).ToList();
+            var data = dbc.PhonePrefixes.OrderBy(e => e.prefix).Select(e => e.prefix).ToList();
             return json(data, "Phone prefixes fetched");
         }
     }
