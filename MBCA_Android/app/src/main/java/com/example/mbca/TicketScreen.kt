@@ -1,5 +1,12 @@
 package com.example.mbca
 
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.media.MediaScannerConnection
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,6 +52,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.min
@@ -74,10 +83,14 @@ fun TicketScreen(modifier: Modifier) {
         items(events) { item ->
             val graphicsLayer = rememberGraphicsLayer()
             var downloading by remember { mutableStateOf(false) }
-            Box(Modifier.padding(vertical = 12.dp).fillMaxWidth().drawWithContent {
-                graphicsLayer.record {this@drawWithContent.drawContent()}
-                drawLayer(graphicsLayer)
-            }) {
+            Box(
+                Modifier
+                    .padding(vertical = 12.dp)
+                    .fillMaxWidth()
+                    .drawWithContent {
+                        graphicsLayer.record { this@drawWithContent.drawContent() }
+                        drawLayer(graphicsLayer)
+                    }) {
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -91,13 +104,71 @@ fun TicketScreen(modifier: Modifier) {
                             item.event.banners[0], item.event.title, Modifier.fillMaxWidth(),
                             ContentScale.FillWidth
                         )
-                        if(!downloading) {
+                        if (!downloading) {
                             IconButton(
                                 {
                                     scope.launch {
                                         downloading = true
                                         val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()
-                                        Toast.makeText(ctx, "Image captured (not downloaded yet)!", Toast.LENGTH_SHORT).show()
+                                        val filename = "Card_${System.currentTimeMillis()}.png"
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                            // for android 10 or greater
+                                            val contentVal = ContentValues().apply {
+                                                put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                                                put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                                                put(
+                                                    MediaStore.MediaColumns.RELATIVE_PATH,
+                                                    Environment.DIRECTORY_PICTURES + "/Tickets"
+                                                )
+                                            }
+                                            val imgUri = ctx.contentResolver.insert(
+                                                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                                                contentVal
+                                            )
+                                            imgUri?.let { uri ->
+                                                ctx.contentResolver.openOutputStream(uri)?.use {
+                                                    bitmap.compress(
+                                                        Bitmap.CompressFormat.PNG,
+                                                        100,
+                                                        it
+                                                    )
+                                                }
+                                                Toast.makeText(
+                                                    ctx, "Ticket downloaded successfully",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+
+                                        } else {
+                                            // for android 9 or lower
+                                            val imgDir = File(
+                                                Environment.getExternalStoragePublicDirectory(
+                                                    Environment.DIRECTORY_PICTURES
+                                                ), "Tickets"
+                                            )
+                                            if (!imgDir.exists()) {
+                                                imgDir.mkdirs()
+                                            }
+                                            val imgFile = File(imgDir, filename)
+                                            try {
+                                                FileOutputStream(imgFile).use {
+                                                    bitmap.compress(
+                                                        Bitmap.CompressFormat.PNG,
+                                                        100,
+                                                        it
+                                                    )
+                                                }
+                                                MediaScannerConnection.scanFile(ctx, arrayOf(imgFile.absolutePath), arrayOf("image/png")) {path, uri ->
+                                                    Log.d("MediaScanner", "File $path ready to show in the galery")
+                                                }
+                                            } catch (e: Exception) {
+                                                e.printStackTrace()
+                                                Toast.makeText(
+                                                    ctx, "Failed to download image",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
                                         downloading = false
                                     }
                                 },
@@ -119,7 +190,8 @@ fun TicketScreen(modifier: Modifier) {
                     }
                     Spacer(Modifier.height(8.dp))
                     val date = item.event.date.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
-                    val startTime = item.event.startTime.format(DateTimeFormatter.ofPattern("hh:mm a"))
+                    val startTime =
+                        item.event.startTime.format(DateTimeFormatter.ofPattern("hh:mm a"))
                     val endTime = item.event.endTime.format(DateTimeFormatter.ofPattern("hh:mm a"))
                     Text("$date ($startTime - $endTime)")
                 }
