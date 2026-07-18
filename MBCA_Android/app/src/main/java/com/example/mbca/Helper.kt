@@ -109,21 +109,21 @@ object HttpClient {
                 readTimeout = req.timeout
                 connectTimeout = req.timeout
                 req.headers.forEach { k, v -> setRequestProperty(k, v) }
-                if(req.body.isNotEmpty() && req.method in listOf("POST", "PUT", "PATCH")) {
+                if (req.body.isNotEmpty() && req.method in listOf("POST", "PUT", "PATCH")) {
                     getOutputStream().buffered().use { it.write(req.body.toByteArray()) }
                 }
 
                 connect()
                 val code = responseCode
-                val body = if(getByte) null else {
-                    if(code in 200..299) {
+                val body = if (getByte) null else {
+                    if (code in 200..299) {
                         getInputStream().bufferedReader().use { it.readText() }
                     } else {
                         errorStream?.bufferedReader()?.use { it.readText() }
                     }
                 }
-                val bytes = if(!getByte) null else {
-                    if(code in 200..299) {
+                val bytes = if (!getByte) null else {
+                    if (code in 200..299) {
                         getInputStream().buffered().use { it.readBytes() }
                     } else {
                         errorStream?.buffered()?.use { it.readBytes() }
@@ -143,7 +143,7 @@ object HttpClient {
         val res = withContext(Dispatchers.IO) {
             send(HttpReq("${addr}uploads/$path"), true)
         }
-        if(res.bytes == null) return null
+        if (res.bytes == null) return null
         return try {
             BitmapFactory.decodeByteArray(res.bytes, 0, res.bytes.size)
                 .asImageBitmap()
@@ -153,16 +153,25 @@ object HttpClient {
         }
     }
 
-    suspend fun jsonReq(route: String, method: String = "GET", body: String = "", errMsg: String = "Error", onParsingJSON: JSONObject.() -> Unit): String {
-        val headers = if(token.isEmpty()) mapOf("content-type" to "application/json") else mapOf("content-type" to "application/json", "authorization" to "Bearer $token")
+    suspend fun jsonReq(
+        route: String,
+        method: String = "GET",
+        body: String = "",
+        errMsg: String = "Error",
+        onParsingJSON: JSONObject.() -> Unit
+    ): String {
+        val headers = if (token.isEmpty()) mapOf("content-type" to "application/json") else mapOf(
+            "content-type" to "application/json",
+            "authorization" to "Bearer $token"
+        )
         val res = withContext(Dispatchers.IO) {
             send(HttpReq("${addr}mbca-api/v1/$route", method, body, headers))
         }
-        if(res.body.isNullOrBlank()) return errMsg
+        if (res.body.isNullOrBlank()) return errMsg
         return try {
             val json = JSONObject(res.body)
 //            println("${addr}mbca-api/v1/$route (${res.code}) : ${json.optString("message", "empty")}")
-            if(res.code != 200) json.optString("message", errMsg)
+            if (res.code != 200) json.optString("message", errMsg)
             else {
                 json.run(onParsingJSON)
                 "ok"
@@ -174,10 +183,12 @@ object HttpClient {
     }
 
     suspend fun login(usernameOrEmail: String, password: String): String {
-        return jsonReq("users/login", "POST", """{
+        return jsonReq(
+            "users/login", "POST", """{
   "usernameOrEmail": "$usernameOrEmail",
   "password": "$password"
-}""", "Login Failed") {
+}""", "Login Failed"
+        ) {
             token = getJSONObject("data").getString("token")
             println(token)
             saveToken()
@@ -200,14 +211,22 @@ object HttpClient {
         return msg == "ok"
     }
 
-    suspend fun register(fullName: String, email: String, username: String, phoneNumber: String, password: String): String {
-        return jsonReq("users/register", "POST", """{
+    suspend fun register(
+        fullName: String,
+        email: String,
+        username: String,
+        phoneNumber: String,
+        password: String
+    ): String {
+        return jsonReq(
+            "users/register", "POST", """{
   "username": "$username",
   "fullName": "$fullName",
   "email": "$email",
   "phoneNumber": "$phoneNumber",
   "password": "$password"
-}""", "Register Failed") {}
+}""", "Register Failed"
+        ) {}
     }
 
     suspend fun newOTP(): String {
@@ -215,9 +234,11 @@ object HttpClient {
     }
 
     suspend fun verifyOTP(code: String): String {
-        return jsonReq("otp/verify", "POST", """{
+        return jsonReq(
+            "otp/verify", "POST", """{
   "code": "$code"
-}""","OTP verification failed") {
+}""", "OTP verification failed"
+        ) {
             token = getJSONObject("data").getString("newToken")
             saveToken()
         }
@@ -227,7 +248,7 @@ object HttpClient {
         val arr = mutableListOf<String>()
         jsonReq("phonePrefixes") {
             getJSONArray("data").run {
-                for(i in 0 until length()) {
+                for (i in 0 until length()) {
                     arr.add(getString(i))
                 }
             }
@@ -235,9 +256,17 @@ object HttpClient {
         return arr
     }
 
-    suspend fun getEvents(): List<Event> {
+    suspend fun getEvents(search: String = ""): List<Event> {
+        var route = "events"
+        if(search != "") {
+            val encodedStr = withContext(Dispatchers.IO) {
+                URLEncoder.encode(search, "UTF-8")
+            }
+            route += "?search=$encodedStr"
+        }
+
         val arr = mutableListOf<Event>()
-        jsonReq("events") {
+        jsonReq(route) {
             val arr2 = getJSONArray("data").mapToData {
                 Event(
                     getInt("id"),
@@ -293,12 +322,15 @@ object HttpClient {
     }
 
     suspend fun purchaseTicket(qty: Int, eventId: Int, code: String): String {
-        return jsonReq("tickets/purchase", "POST", """{
+        return jsonReq(
+            "tickets/purchase", "POST", """{
   "qty": $qty,
   "eventId": $eventId,
   "code": "$code"
-}""") {}
+}"""
+        ) {}
     }
+
     suspend fun checkPromoCode(code: String): String {
         val encodedCode = withContext(Dispatchers.IO) {
             URLEncoder.encode(code, "UTF-8")
@@ -323,7 +355,7 @@ object HttpClient {
                         getJSONArray("banners").mapToData { getString("banner") },
                     )
                 }
-                val promo = if(isNull("promo")) null else getJSONObject("promo").run {
+                val promo = if (isNull("promo")) null else getJSONObject("promo").run {
                     Promo(
                         getInt("id"),
                         getString("code"),
@@ -349,7 +381,7 @@ object HttpClient {
 
 fun <T> JSONArray.mapToData(transform: JSONObject.() -> T): List<T> {
     val arr = mutableListOf<T>()
-    for(i in 0 until length()) {
+    for (i in 0 until length()) {
         arr.add(getJSONObject(i).run(transform))
     }
     return arr
@@ -357,10 +389,10 @@ fun <T> JSONArray.mapToData(transform: JSONObject.() -> T): List<T> {
 
 fun <T> JSONArray.transform(transform: JSONArray.(Int) -> T): List<T> {
     val arr = mutableListOf<T>()
-    for(i in 0 until length()) {
+    for (i in 0 until length()) {
         arr.add(run {
             transform(i)
         })
     }
-    return  arr
+    return arr
 }

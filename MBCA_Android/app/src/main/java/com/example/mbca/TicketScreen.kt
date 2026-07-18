@@ -20,10 +20,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.getSelectedEndDate
+import androidx.compose.material3.getSelectedStartDate
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -50,27 +59,68 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.min
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TicketScreen(modifier: Modifier) {
-    val events = remember { mutableStateListOf<Ticket>() }
+    val tickets = remember { mutableStateListOf<Ticket>() }
+    var openDialog by remember { mutableStateOf(false) }
+    val dateRangePicker = rememberDateRangePickerState()
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    var selectedRange by remember { mutableStateOf<Pair<LocalDate, LocalDate>?>(null) }
 
     LaunchedEffect(Unit) {
         val arr = HttpClient.getTickets()
-        events.addAll(arr)
+        tickets.addAll(arr)
+    }
+
+    LaunchedEffect(selectedRange) {
+        if(selectedRange != null) {
+            println("Yeah")
+            val range = selectedRange!!
+            val filter = HttpClient.getTickets().filter { range.first < it.event.date && it.event.date < range.second }
+            println(filter)
+            tickets.clear()
+            tickets.addAll(filter)
+        }
+    }
+
+    if (openDialog) {
+        DatePickerDialog(
+            { openDialog = false },
+            { TextButton({
+                val start = dateRangePicker.getSelectedStartDate()
+                val end = dateRangePicker.getSelectedEndDate()
+                if(start == null || end == null) return@TextButton
+                selectedRange = Pair(start, end)
+                println(selectedRange)
+                openDialog = false
+            }) { Text("OK") } },
+            dismissButton = { TextButton({
+                openDialog = false
+            }) { Text("Cancel") } }) {
+            DateRangePicker(
+                dateRangePicker,
+                title = { Text("Select date range") },
+                showModeToggle = false,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 
     LazyColumn(modifier.padding(horizontal = 12.dp)) {
         item {
+
             Spacer(Modifier.height(24.dp))
             Text(
                 "Upcoming Event",
@@ -78,9 +128,20 @@ fun TicketScreen(modifier: Modifier) {
                 fontSize = typ().headlineSmall.fontSize
             )
             Text("The magical events are waiting for you")
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton({
+                openDialog = true
+            }, shape = corner()) {
+                val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                val text = if(selectedRange != null) "${selectedRange!!.first.format(fmt)} - ${selectedRange!!.second.format(fmt)}" else "Filter Date"
+                Text(text)
+            }
             Spacer(Modifier.height(24.dp))
+            if(tickets.isEmpty()) {
+                Text("No Ticket found", Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = Color.Gray)
+            }
         }
-        items(events) { item ->
+        items(tickets) { item ->
             val graphicsLayer = rememberGraphicsLayer()
             var downloading by remember { mutableStateOf(false) }
             Box(
@@ -101,7 +162,9 @@ fun TicketScreen(modifier: Modifier) {
                 ) {
                     Box(Modifier.fillMaxWidth()) {
                         NetImg(
-                            item.event.banners[0], item.event.title, Modifier.fillMaxWidth(),
+                            item.event.banners[0],
+                            item.event.title,
+                            Modifier.fillMaxWidth(),
                             ContentScale.FillWidth
                         )
                         if (!downloading) {
@@ -128,13 +191,12 @@ fun TicketScreen(modifier: Modifier) {
                                             imgUri?.let { uri ->
                                                 ctx.contentResolver.openOutputStream(uri)?.use {
                                                     bitmap.compress(
-                                                        Bitmap.CompressFormat.PNG,
-                                                        100,
-                                                        it
+                                                        Bitmap.CompressFormat.PNG, 100, it
                                                     )
                                                 }
                                                 Toast.makeText(
-                                                    ctx, "Ticket downloaded successfully",
+                                                    ctx,
+                                                    "Ticket downloaded successfully",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
@@ -153,18 +215,24 @@ fun TicketScreen(modifier: Modifier) {
                                             try {
                                                 FileOutputStream(imgFile).use {
                                                     bitmap.compress(
-                                                        Bitmap.CompressFormat.PNG,
-                                                        100,
-                                                        it
+                                                        Bitmap.CompressFormat.PNG, 100, it
                                                     )
                                                 }
-                                                MediaScannerConnection.scanFile(ctx, arrayOf(imgFile.absolutePath), arrayOf("image/png")) {path, uri ->
-                                                    Log.d("MediaScanner", "File $path ready to show in the galery")
+                                                MediaScannerConnection.scanFile(
+                                                    ctx,
+                                                    arrayOf(imgFile.absolutePath),
+                                                    arrayOf("image/png")
+                                                ) { path, uri ->
+                                                    Log.d(
+                                                        "MediaScanner",
+                                                        "File $path ready to show in the galery"
+                                                    )
                                                 }
                                             } catch (e: Exception) {
                                                 e.printStackTrace()
                                                 Toast.makeText(
-                                                    ctx, "Failed to download image",
+                                                    ctx,
+                                                    "Failed to download image",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }

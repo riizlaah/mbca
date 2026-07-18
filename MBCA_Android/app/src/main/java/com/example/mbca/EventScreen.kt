@@ -3,6 +3,7 @@ package com.example.mbca
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +37,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -43,28 +48,62 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun EventScreen(modifier: Modifier) {
     val events = remember { mutableStateListOf<Event>() }
+    var search by rememberSaveable { mutableStateOf("") }
+    var openLogoutDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
 
     LaunchedEffect(Unit) {
         val arr = HttpClient.getEvents()
-        println(arr)
         events.addAll(arr)
+    }
+
+    LaunchedEffect(search) {
+        delay(500)
+        val arr = HttpClient.getEvents(search)
+        events.clear()
+        events.addAll(arr)
+
+    }
+
+    if (openLogoutDialog) {
+        Dialog({ openLogoutDialog = false }) {
+            Column(Modifier
+                .fillMaxWidth()
+                .clip(corner())
+                .background(Color.White).padding(24.dp)) {
+                Text("Are you sure?", fontWeight = FontWeight.Bold, fontSize = typ().titleLarge.fontSize)
+                Spacer(Modifier.height(48.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+                    TextButton({
+                        openLogoutDialog = false
+                    }) {
+                        Text("No")
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    TextButton({
+                        scope.launch {
+                            HttpClient.token = ""
+                            HttpClient.saveToken()
+                            HttpClient.profile = null
+                            val int = Intent(ctx, MainActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            }
+                            ctx.startActivity(int)
+                        }
+                    }) {
+                        Text("Yes")
+                    }
+                }
+            }
+        }
     }
 
     LazyColumn(modifier.padding(horizontal = 12.dp)) {
         item {
             Spacer(Modifier.height(12.dp))
             OutlinedButton({
-                scope.launch {
-                    HttpClient.token = ""
-                    HttpClient.saveToken()
-                    HttpClient.profile = null
-                    val int = Intent(ctx, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    }
-                    ctx.startActivity(int)
-                }
+                openLogoutDialog = true
             }, shape = corner()) {
                 Icon(painterResource(R.drawable.arr_back), "Back")
                 Spacer(Modifier.width(4.dp))
@@ -77,7 +116,23 @@ fun EventScreen(modifier: Modifier) {
                 fontSize = typ().headlineSmall.fontSize
             )
             Text("The magical events are waiting for you")
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                search,
+                { search = it },
+                Modifier.fillMaxWidth(),
+                placeholder = { Text("Search") },
+                shape = corner()
+            )
             Spacer(Modifier.height(24.dp))
+            if (events.isEmpty()) {
+                Text(
+                    "No Event found",
+                    Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    color = Color.Gray
+                )
+            }
         }
         items(events) { item ->
             Column(
@@ -89,7 +144,12 @@ fun EventScreen(modifier: Modifier) {
                     .background(Color.White)
                     .padding(12.dp)
                     .clickable(onClick = {
-                        val int = Intent(ctx, EventDetailActivity::class.java).apply { putExtra("id", item.id) }
+                        val int = Intent(ctx, EventDetailActivity::class.java).apply {
+                            putExtra(
+                                "id",
+                                item.id
+                            )
+                        }
                         ctx.startActivity(int)
                     })
             ) {

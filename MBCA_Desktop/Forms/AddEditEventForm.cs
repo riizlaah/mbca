@@ -117,16 +117,6 @@ namespace MBCA_Desktop.Forms
                 MessageBox.Show("Price not valid");
                 return;
             }
-            if (date.Value < DateTime.Now)
-            {
-                MessageBox.Show("Date not valid");
-                return;
-            }
-            if (startTime.Value > endTime.Value)
-            {
-                MessageBox.Show("Start/End time not valid");
-                return;
-            }
 
             try
             {

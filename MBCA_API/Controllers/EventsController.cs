@@ -136,7 +136,7 @@ namespace MBCA_API.Controllers
             if (input.price <= 0m) return err("Price must be greater than zero");
             if (input.banners.Count < 1) return err("Banner required");
             if (input.exhibits.Count < 1) return err("Exhibit required");
-            if (input.startTime >= input.endTime) return err("Time not valid");
+            if (input.startTime >= input.endTime) return err("End time must be greater than start time");
             if (input.categoryId <= 0 || !await dbc.EventCategories.AnyAsync(ec => ec.id == input.categoryId)) return err("Category not found", 404);
             foreach(var id in input.exhibits)
             {
@@ -162,7 +162,7 @@ namespace MBCA_API.Controllers
             if (input.price <= 0m) return err("Price must be greater than zero");
             if (input.date < DateOnly.FromDateTime(DateTime.Now)) return err("Date must be greater than today");
             if (input.banners.Count > 0 && !input.banners.Any(b => isImageValid(b))) return err("Some banner image doesn't valid");
-            if (input.startTime >= input.endTime) return err("Time not valid");
+            if (input.startTime >= input.endTime) return err("End time must be greater than start time");
             var rec = dbc.Events.Include(e => e.eventCategory).Include(e => e.eventBanners).Include(e => e.eventExhibits).ThenInclude(e => e.exhibit.exhibitCategory).FirstOrDefault(e => e.id == id);
             if (rec == null) return err("Event not found");
             if (input.categoryId <= 0 || !await dbc.EventCategories.AnyAsync(ec => ec.id == input.categoryId)) return err("Category not found", 404);
@@ -219,12 +219,13 @@ namespace MBCA_API.Controllers
         public ActionResult Remove(int id)
         {
             if (isNotVerified()) return notVerified();
-            var rec = dbc.Events.Include(e => e.eventBanners).FirstOrDefault(e => e.id == id);
+            var rec = dbc.Events.Include(e => e.eventBanners).Include(e => e.eventExhibits).FirstOrDefault(e => e.id == id);
             if (rec == null) return err("Event not found");
             foreach(var banner in rec.eventBanners)
             {
                 System.IO.File.Delete(Path.Combine(uploadDir, banner.banner));
             }
+            dbc.EventExhibits.RemoveRange(rec.eventExhibits);
             dbc.Events.Remove(rec);
             dbc.SaveChanges();
             return msg("Event removed successfully");

@@ -1,6 +1,7 @@
 package com.example.mbca
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -230,6 +231,7 @@ class EventDetailActivity : ComponentActivity() {
                                 }
                             }
                             Spacer(Modifier.height(12.dp))
+                            ErrText(errMsg, Modifier.fillMaxWidth())
                             Button({
                                 val qty = quantity.toIntOrNull() ?: 0
                                 if (qty < 1) {
@@ -240,6 +242,7 @@ class EventDetailActivity : ComponentActivity() {
                                     loading = true
                                     when (val msg = HttpClient.purchaseTicket(qty, item.id, code)) {
                                         "ok" -> {
+                                            Toast.makeText(ctx, "Ticket purchased", Toast.LENGTH_SHORT).show()
                                             finish()
                                         }
                                         else -> errMsg = msg
